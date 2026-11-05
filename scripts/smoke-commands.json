@@ -1,0 +1,11 @@
+[
+  {
+    "label": "agent-browser --help",
+    "cwd": ".",
+    "cmd": [
+      "node",
+      "src/cli.js",
+      "--help"
+    ]
+  }
+]
