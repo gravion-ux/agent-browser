@@ -1,3 +1,7 @@
+import { isIP } from "node:net";
+
+const DOMAIN_LABEL = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+
 function canonicalDomain(value) {
   if (typeof value !== "string" || !value.trim()) {
     throw new Error("Allowed domains must be non-empty hostnames.");
@@ -12,7 +16,15 @@ function canonicalDomain(value) {
   if (parsed.port || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) {
     throw new Error(`Allowed entries must be hostnames without ports or paths: ${value}`);
   }
-  return parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  // An IP literal is not a hostname, and a single label ("com") would silently widen
+  // the allow-list to every host under that public suffix.
+  if (isIP(hostname)) throw new Error(`Invalid allowed domain: ${value}`);
+  const labels = hostname.split(".");
+  if (labels.length < 2 || !labels.every((label) => DOMAIN_LABEL.test(label))) {
+    throw new Error(`Invalid allowed domain: ${value}`);
+  }
+  return hostname;
 }
 
 export function normalizeAllowedDomains(values) {
