@@ -7,10 +7,37 @@ import { validateTarget } from "./policy.js";
 import { detectChallenge } from "./challenge.js";
 import { assertSafeNetworkTarget } from "./network.js";
 
-function parse(argv) {
+// Options that take a value. Only these may use the --flag=value form.
+const VALUE_OPTIONS = new Set(["--url", "--allow-domain", "--timeout-ms", "--max-chars"]);
+
+/**
+ * Rewrite the --flag=value form into the --flag value form, so both spellings
+ * reach the same parser. An option that takes no value cannot be written with
+ * an inline value, and an empty inline value is a missing value.
+ */
+export function expandInlineValues(argv) {
+  const expanded = [];
+  for (const arg of argv) {
+    if (!arg.startsWith("--") || !arg.includes("=")) {
+      expanded.push(arg);
+      continue;
+    }
+    const separator = arg.indexOf("=");
+    const flag = arg.slice(0, separator);
+    const value = arg.slice(separator + 1);
+    if (!VALUE_OPTIONS.has(flag)) throw new Error(`Option ${flag} does not take a value.`);
+    if (value === "") throw new Error(`${flag} requires a value.`);
+    if (value.startsWith("--")) throw new Error(`${flag} value may not start with --.`);
+    expanded.push(flag, value);
+  }
+  return expanded;
+}
+
+export function parse(argv) {
   const options = { url: null, domains: [], timeout: 20000, maxChars: 4000, allowPrivateNetwork: false };
-  for (let i = 0; i < argv.length; i++) {
-    const flag = argv[i], value = argv[i + 1];
+  const args = expandInlineValues(argv);
+  for (let i = 0; i < args.length; i++) {
+    const flag = args[i], value = args[i + 1];
     if (flag === "--url" && value && !value.startsWith("--")) { options.url = value; i++; }
     else if (flag === "--allow-domain" && value && !value.startsWith("--")) { options.domains.push(...value.split(",")); i++; }
     else if (flag === "--timeout-ms" && value && !value.startsWith("--")) { options.timeout = Number(value); i++; }
@@ -43,7 +70,7 @@ export async function main(argv = process.argv.slice(2)) {
   try {
     options = parse(argv);
     if (options.help) {
-      console.log("Agent Browser v0.4.3\n\nUsage: npm start -- --url https://example.com --allow-domain example.com\n\nOptions: --url URL --allow-domain DOMAIN[,DOMAIN] [--timeout-ms 20000] [--max-chars 4000] [--allow-private-network]");
+      console.log("Agent Browser v0.4.3\n\nUsage: npm start -- --url https://example.com --allow-domain example.com\n\nOptions: --url URL --allow-domain DOMAIN[,DOMAIN] [--timeout-ms 20000] [--max-chars 4000] [--allow-private-network]\n\nOptions also accept the --flag=value form, for example --url=https://example.com.");
       return 0;
     }
     await assertSafeNetworkTarget(options.target.href, { allowPrivateNetwork: options.allowPrivateNetwork });
