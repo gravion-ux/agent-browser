@@ -1,8 +1,10 @@
+<p align="center"><img src="assets/banner.svg" alt="agent-browser banner" width="100%"/></p>
+
 # Agent Browser v0.4.3
 
-[![CI](https://github.com/gravion-ux/agent-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/gravion-ux/agent-browser/actions/workflows/ci.yml)
+[![CI](https://github.com/gravion-ux/agent-browser/actions/workflows/ci.yml/badge.svg)](https://github.com/gravion-ux/agent-browser/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-A visible Playwright browser starter for bounded research on domains the user is authorized to access. It enforces an explicit hostname allow-list and detects common CAPTCHA, anti-bot, login/MFA, rate-limit, consent and access-denial indicators.
+**A visible Playwright browser starter for bounded research on domains the user is authorized to access.**
 
 ## Requirements
 
