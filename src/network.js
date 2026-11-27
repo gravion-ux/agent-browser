@@ -39,34 +39,37 @@ function hasV6Prefix(value, network, prefix) {
   return (value & mask) === (network & mask);
 }
 
+const V4_BLOCKED_RANGES = [
+  ["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10],
+  ["127.0.0.0", 8], ["169.254.0.0", 16], ["172.16.0.0", 12],
+  ["192.0.0.0", 24], ["192.0.2.0", 24], ["192.88.99.0", 24],
+  ["192.168.0.0", 16], ["198.18.0.0", 15], ["198.51.100.0", 24],
+  ["203.0.113.0", 24], ["224.0.0.0", 4], ["240.0.0.0", 4],
+];
+
 const V6_BLOCKED_PREFIXES = [
   ["::", 128], ["::1", 128], ["fc00::", 7], ["fe80::", 10], ["ff00::", 8],
   ["2001::", 23], ["2001:db8::", 32], ["2002::", 16], ["3fff::", 20],
 ].map(([base, prefix]) => [ipv6BigInt(base), prefix]);
 
+const V6_MAPPED_PREFIX = ipv6BigInt("::ffff:0:0");
+const V6_GLOBAL_UNICAST = ipv6BigInt("2000::");
+
 export function isPublicAddress(address) {
   const v4 = ipv4Parts(address);
   if (v4) {
-    const blocked = [
-      ["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10],
-      ["127.0.0.0", 8], ["169.254.0.0", 16], ["172.16.0.0", 12],
-      ["192.0.0.0", 24], ["192.0.2.0", 24], ["192.88.99.0", 24],
-      ["192.168.0.0", 16], ["198.18.0.0", 15], ["198.51.100.0", 24],
-      ["203.0.113.0", 24], ["224.0.0.0", 4], ["240.0.0.0", 4],
-    ];
-    return !blocked.some(([base, mask]) => inV4Range(v4, base, mask)) && address !== "255.255.255.255";
+    return !V4_BLOCKED_RANGES.some(([base, mask]) => inV4Range(v4, base, mask)) && address !== "255.255.255.255";
   }
 
   if (isIP(address) === 6) {
     const value = ipv6BigInt(address);
     if (value === null) return false;
-    const mappedPrefix = ipv6BigInt("::ffff:0:0");
-    if (hasV6Prefix(value, mappedPrefix, 96)) {
+    if (hasV6Prefix(value, V6_MAPPED_PREFIX, 96)) {
       const v4value = Number(value & 0xffffffffn);
       const mapped = [24, 16, 8, 0].map((shift) => (v4value >>> shift) & 255).join(".");
       return isPublicAddress(mapped);
     }
-    const globalUnicast = hasV6Prefix(value, ipv6BigInt("2000::"), 3);
+    const globalUnicast = hasV6Prefix(value, V6_GLOBAL_UNICAST, 3);
     if (!globalUnicast) return false;
     return !V6_BLOCKED_PREFIXES.some(([network, prefix]) => hasV6Prefix(value, network, prefix));
   }
